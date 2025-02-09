@@ -13,13 +13,14 @@ import ManageTimetable from './pages/admin/ManageTimetable';
 import TeacherPreferences from './pages/teacher/TeacherPreferences';
 import ViewTimetable from './pages/teacher/ViewTimetable';
 import Activity from './pages/teacher/Activity';
+import Timetable from './pages/teacher/grouptimetable'
 import { isLoggedIn, getUserRole } from './utils/auth';
 
 // Protected Route Component with role check
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const authenticated = isLoggedIn();
   const userRole = getUserRole();
-  
+
   if (!authenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -39,7 +40,7 @@ function App() {
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
-        
+
         {/* Admin Routes */}
         <Route
           path="/admin/dashboard"
@@ -121,6 +122,15 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['teacher']}>
               <Activity />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/teacher/class/:id"
+          element={
+            <ProtectedRoute allowedRoles={['teacher']}>
+              <Timetable />
             </ProtectedRoute>
           }
         />

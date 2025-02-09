@@ -155,70 +155,70 @@ const StudentDashboard = () => {
           </div>
 
           {/* Timetable */}
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-pulse text-gray-500">Loading schedule...</div>
-            </div>
-          ) : (
-            <div className="bg-white shadow rounded-lg overflow-hidden">
-              <div className="px-4 py-5 sm:p-6">
-                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-                  Weekly Schedule
-                </h3>
-                <div className="overflow-x-auto">
-                  <div className="inline-block min-w-full align-middle">
-                    <div className="overflow-hidden ring-1 ring-black ring-opacity-5">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="sticky left-0 z-10 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b w-32">
-                              Day
-                            </th>
-                            {timeSlots.map(timeSlot => (
-                              <th key={timeSlot} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b min-w-[160px]">
-                                {timeSlot}
+            {loading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="animate-pulse text-gray-500">Loading schedule...</div>
+              </div>
+            ) : (
+              <div className="bg-white shadow rounded-lg overflow-hidden">
+                <div className="px-4 py-5 sm:p-6">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                    Weekly Schedule
+                  </h3>
+                  <div className="overflow-x-auto">
+                    <div className="inline-block min-w-full align-middle">
+                      <div className="overflow-hidden ring-1 ring-black ring-opacity-5">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="sticky left-0 z-10 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b w-32">
+                                Day
                               </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {days.map(day => (
-                            <tr key={day}>
-                              <td className="sticky left-0 z-10 bg-gray-50 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r w-32">
-                                {day}
-                              </td>
-                              {timeSlots.map(timeSlot => {
-                                const slot = getClassForTimeSlot(day, timeSlot);
-                                return (
-                                  <td key={`${day}-${timeSlot}`} className="px-4 py-4 whitespace-nowrap border-r min-w-[160px]">
-                                    {slot ? (
-                                      <div className={`p-3 rounded-lg ${getSlotColor(slot)}`}>
-                                        <div className="font-medium text-gray-900">
-                                          {slot.subject}
-                                        </div>
-                                        <div className="text-sm text-gray-600 mt-1">
-                                          {slot.teacher}
-                                        </div>
-                                        <div className="text-xs text-gray-500 mt-1">
-                                          Room {slot.room}
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <div className="h-16"></div>
-                                    )}
-                                  </td>
-                                );
-                              })}
+                              {timeSlots.map(timeSlot => (
+                                <th key={timeSlot} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b min-w-[160px]">
+                                  {timeSlot}
+                                </th>
+                              ))}
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {days.map(day => (
+                              <tr key={day}>
+                                <td className="sticky left-0 z-10 bg-gray-50 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r w-32">
+                                  {day}
+                                </td>
+                                {timeSlots.map(timeSlot => {
+                                  const slot = getClassForTimeSlot(day, timeSlot);
+                                  return (
+                                    <td key={`${day}-${timeSlot}`} className="px-4 py-4 whitespace-nowrap border-r min-w-[160px]">
+                                      {slot ? (
+                                        <div className={`p-3 rounded-lg ${getSlotColor(slot)}`}>
+                                          <div className="font-medium text-gray-900">
+                                            {slot.subject}
+                                          </div>
+                                          <div className="text-sm text-gray-600 mt-1">
+                                            {slot.teacher}
+                                          </div>
+                                          <div className="text-xs text-gray-500 mt-1">
+                                            Room {slot.room}
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="h-16"></div>
+                                      )}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import express from 'express';
 import Timetable from '../models/timetableSchema.js';
-import { auth, isAdmin } from '../middleware/auth.js';
+import { auth, isAdmin, isTeacher } from '../middleware/auth.js';
 import TimetableGenerator from '../services/timetableGenerator.js';
 import User from '../models/userSchema.js';
 import mongoose from 'mongoose';
@@ -165,6 +165,87 @@ router.get('/student/schedule', auth, async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch schedule' });
   }
 });
+
+// Generate a timetable using group id
+router.get('/student-group/timetable/:studentGroupId', auth,isTeacher, async (req, res) => {
+  try {
+    const { studentGroupId } = req.params; // Extract student group ID from request params
+
+    // Get the active timetable
+    const activeTimetable = await Timetable.findOne()
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (!activeTimetable) {
+      return res.status(404).json({ message: 'No active timetable found' });
+    }
+
+    // Get all slots for this student group
+    const slots = await TimetableSlot.find({
+      timetableId: activeTimetable._id,
+      studentGroupId: studentGroupId
+    })
+      .populate('teacherId', 'name')
+      .populate('subjectId', 'name')
+      .populate('classroomId', 'name')
+      .sort({ dayName: 1, timeSlotName: 1 })
+      .lean();
+
+    // Format the slots for frontend
+    const formattedSchedule = slots.map(slot => ({
+      day: slot.dayName,
+      timeSlot: slot.timeSlotName,
+      subject: slot.subjectId.name,
+      teacher: slot.teacherId.name,
+      room: slot.classroomId.name
+    }));
+
+    res.json({
+      studentGroupId,
+      schedule: formattedSchedule
+    });
+  } catch (error) {
+    console.error('Error fetching student group timetable:', error);
+    res.status(500).json({ message: 'Failed to fetch timetable' });
+  }
+});
+
+router.delete("/teacher/class/:id/delete", auth, isTeacher, async (req, res) => {
+  try {
+      const { day, time, group, subjectId } = req.body;
+
+      if (!day || !time || !group || !subjectId) {
+          return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      // Find the timetable entry for the given group
+      const timetableEntry = await Timetable.findOne({ studentGroup: group });
+
+      if (!timetableEntry) {
+          return res.status(404).json({ error: "Timetable entry not found" });
+      }
+
+      // Filter out the slot that matches the given day, time, and subject
+      const updatedSchedule = timetableEntry.schedule.filter(
+          (slot) => !(slot.day === day && slot.timeSlot === time && slot.subject.toString() === subjectId)
+      );
+
+      // If no change in schedule, return an error
+      if (updatedSchedule.length === timetableEntry.schedule.length) {
+          return res.status(404).json({ error: "Slot not found in the schedule" });
+      }
+
+      // Update the document in the database
+      timetableEntry.schedule = updatedSchedule;
+      await timetableEntry.save();
+
+      res.status(200).json({ message: "Slot deleted successfully", timetable: timetableEntry });
+  } catch (error) {
+      console.error("Error deleting timetable slot:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 
 // Generate new timetable (admin only)
 router.post('/generate-timetable', isAdmin, async (req, res) => {
