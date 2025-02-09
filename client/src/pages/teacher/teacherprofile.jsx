@@ -12,7 +12,6 @@ const TeacherProfile = () => {
   });
 
   const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
@@ -57,11 +56,11 @@ const TeacherProfile = () => {
   const updateProfile = async (e) => {
     e.preventDefault();
     try {
-      await axios.put('/api/users/profile', {
+      await axios.put('/api/teacher/profile', {
         name: profileData.name,
         department: profileData.department
       });
-      
+
       toast.success('Profile updated successfully');
       setIsEditing(false);
     } catch (error) {
@@ -72,7 +71,7 @@ const TeacherProfile = () => {
 
   const updatePassword = async (e) => {
     e.preventDefault();
-    
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast.error('New passwords do not match');
       return;
@@ -84,14 +83,12 @@ const TeacherProfile = () => {
     }
 
     try {
-      await axios.put('/api/users/password', {
-        currentPassword: passwordData.currentPassword,
+      await axios.put('/api/teacher/change-password', {
         newPassword: passwordData.newPassword
       });
-      
+
       toast.success('Password updated successfully');
       setPasswordData({
-        currentPassword: '',
         newPassword: '',
         confirmPassword: ''
       });
