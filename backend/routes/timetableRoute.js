@@ -6,72 +6,63 @@ import User from '../models/userSchema.js';
 import mongoose from 'mongoose';
 import Classroom from '../models/classroomSchema.js';
 import { TimetableSlot } from '../models/timetableSlotSchema.js';
+const { ObjectId } = mongoose.Types;
+import StudentGroup from "../models/studentGroupSchema.js";
+
 
 const router = express.Router();
 
 router.use(auth);
 
 // Get current timetable
-router.get('/timetable', async (req, res) => {
+router.delete("/teacher/class/:id/delete", auth, isTeacher, async (req, res) => {
   try {
-    // Get the active timetable
-    const activeTimetable = await Timetable.findOne({ status: 'active' })
-      .sort({ createdAt: -1 })
-      .lean();
+      const { day, time, group, subjectId } = req.body;
+      const {id} = req.params();
 
-    if (!activeTimetable) {
-      return res.status(404).json({ message: 'No active timetable found' });
-    }
-
-    // Get all slots for this timetable
-    const slots = await TimetableSlot.find({ timetableId: activeTimetable._id })
-      .populate('teacherId', 'name')
-      .populate('subjectId', 'name')
-      .populate('classroomId', 'name')
-      .populate('studentGroupId', 'name')
-      .sort({ dayName: 1, timeSlotName: 1 })
-      .lean();
-
-    // Group slots by student group
-    const groupedSlots = {};
-
-    slots.forEach(slot => {
-      const studentGroupId = slot.studentGroupId._id.toString();
-      if (!groupedSlots[studentGroupId]) {
-        groupedSlots[studentGroupId] = {
-          studentGroup: slot.studentGroupId.name,
-          schedule: []
-        };
+      // Validate subjectId format
+      if (!mongoose.Types.ObjectId.isValid(subjectId)) {
+          return res.status(400).json({ message: "Invalid subject ID format" });
       }
 
-      groupedSlots[studentGroupId].schedule.push({
-        day: slot.dayName,
-        timeSlot: slot.timeSlotName,
-        teacher: slot.teacherId.name,
-        subject: slot.subjectId.name,
-        classroom: slot.classroomId.name
-      });
-    });
+      // Find studentGroupId from the name
+      const studentGroup = await StudentGroup.findOne({ name: group });
+      if (!studentGroup) {
+          return res.status(404).json({ message: "Student group not found" });
+      }
 
-    // Sort schedule for each group
-    Object.values(groupedSlots).forEach(group => {
-      group.schedule.sort((a, b) => {
-        const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-        const dayDiff = dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day);
-        if (dayDiff !== 0) return dayDiff;
-        return a.timeSlot.localeCompare(b.timeSlot);
-      });
-    });
+      const studentGroupId = studentGroup._id; // Extract valid ObjectId
 
-    res.json({
-      timetableId: activeTimetable._id,
-      academicYear: activeTimetable.academicYear,
-      semester: activeTimetable.semester,
-      timetable: Object.values(groupedSlots)
-    });
+      // Handle startTime matching flexibly
+      const regexTime = new RegExp(`^${time.replace(/[:\s]/g, '.*')}$`, 'i');
+
+      // Find and delete the timetable slot
+      const timetableSlot = await TimetableSlot.findOneAndDelete({
+          studentGroup: studentGroupId,
+          day: day,
+          startTime: { $regex: regexTime },
+          subject: subjectId
+      });
+
+      if (!timetableSlot) {
+          return res.status(404).json({ message: "Timetable slot not found. Check input values." });
+      }
+
+      return res.json({ message: "Timetable slot deleted successfully" });
+
   } catch (error) {
-    console.error('Error fetching timetable:', error);
-    res.status(500).json({ message: 'Failed to fetch timetable' });
+      console.error("Error deleting slot:", error.message);
+      res.status(500).json({ message: "Unexpected error: " + error.message });
+  }
+});
+router.delete("/delete-all", auth, isAdmin, async (req, res) => {
+  try {
+      await Timetable.deleteMany({});
+      await TimetableSlot.deleteMany({});
+      res.json({ message: "All timetables deleted successfully" });
+  } catch (error) {
+      console.error("Error deleting timetables:", error.message);
+      res.status(500).json({ message: "Unexpected error: " + error.message });
   }
 });
 
@@ -210,41 +201,6 @@ router.get('/student-group/timetable/:studentGroupId', auth,isTeacher, async (re
   }
 });
 
-router.delete("/teacher/class/:id/delete", auth, isTeacher, async (req, res) => {
-  try {
-      const { day, time, group, subjectId } = req.body;
-
-      if (!day || !time || !group || !subjectId) {
-          return res.status(400).json({ error: "Missing required fields" });
-      }
-
-      // Find the timetable entry for the given group
-      const timetableEntry = await Timetable.findOne({ studentGroup: group });
-
-      if (!timetableEntry) {
-          return res.status(404).json({ error: "Timetable entry not found" });
-      }
-
-      // Filter out the slot that matches the given day, time, and subject
-      const updatedSchedule = timetableEntry.schedule.filter(
-          (slot) => !(slot.day === day && slot.timeSlot === time && slot.subject.toString() === subjectId)
-      );
-
-      // If no change in schedule, return an error
-      if (updatedSchedule.length === timetableEntry.schedule.length) {
-          return res.status(404).json({ error: "Slot not found in the schedule" });
-      }
-
-      // Update the document in the database
-      timetableEntry.schedule = updatedSchedule;
-      await timetableEntry.save();
-
-      res.status(200).json({ message: "Slot deleted successfully", timetable: timetableEntry });
-  } catch (error) {
-      console.error("Error deleting timetable slot:", error);
-      res.status(500).json({ error: "Internal Server Error" });
-  }
-});
 
 
 // Generate new timetable (admin only)

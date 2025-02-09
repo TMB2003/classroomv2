@@ -2,18 +2,33 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { getToken } from "../../utils/auth";
 import { useParams } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
+ // To decode the token
 
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const timeSlots = ["9:00 AM", "10:00 AM", "11:00 AM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM"];
 
 const Timetable = () => {
-    const {id} = useParams();
+    const { id } = useParams();
     const [timetable, setTimetable] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState(null);
+    const [teacherName, setTeacherName] = useState(""); // Store teacher's name
     const token = getToken();
-    
+
+    useEffect(() => {
+        // Extract teacher's name from the token
+        if (token) {
+            try {
+                const decodedToken = jwtDecode(token);
+                setTeacherName(decodedToken.name); // Adjust this field based on your JWT structure
+            } catch (error) {
+                console.error("Error decoding token:", error);
+            }
+        }
+    }, [token]);
+
     useEffect(() => {
         const fetchTimetable = async () => {
             try {
@@ -28,30 +43,44 @@ const Timetable = () => {
                 setLoading(false);
             }
         };
+
         fetchTimetable();
     }, []);
 
     const openModal = (day, time, group) => {
         const currentSlot = getSlotContent(day, time, group);
+        console.log("Current Slot",currentSlot);
         if (!currentSlot) return;
-        setSelectedSlot({ day, time, group, subjectId: currentSlot.subject });
+        setSelectedSlot({
+            day,
+            time,
+            group: group.studentGroup,
+            teacher: currentSlot.teacher, 
+        });
         setIsModalOpen(true);
     };
 
     const handleDeleteSlot = async () => {
-        if (!selectedSlot || !selectedSlot.subjectId) {
-            console.error("Error: No subject ID found for deletion.");
+        if (!selectedSlot) {
+            console.error("Error: No slot selected for deletion.");
             return;
         }
-    
+
         try {
+            console.log(selectedSlot)
             await axios.delete(`http://localhost:3001/api/teacher/class/${id}/delete`, {
                 headers: { Authorization: `Bearer ${token}` },
+                data: {
+                    day: selectedSlot.day,
+                    time: selectedSlot.time,
+                    group: selectedSlot.group,
+                    // subjectId : selectedSlot.
+                },      
             });
-            // selectedSlot.subjectId
+
             setTimetable((prev) =>
                 prev.map((group) =>
-                    group.studentGroup === selectedSlot.group.studentGroup
+                    group.studentGroup === selectedSlot.group
                         ? {
                               ...group,
                               schedule: group.schedule.filter(
@@ -66,7 +95,6 @@ const Timetable = () => {
             console.error("Error deleting slot:", error);
         }
     };
-    
 
     const getSlotContent = (day, time, group) => {
         return group.schedule.find((slot) => slot.day === day && slot.timeSlot === time) || null;
@@ -132,16 +160,20 @@ const Timetable = () => {
                 <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
                     <div className="bg-white p-6 rounded-lg shadow-lg">
                         <h2 className="text-lg font-semibold mb-4">Lecture Details</h2>
-                        <p>Subject: {selectedSlot.subjectId}</p>
+                        <p>Teacher: {selectedSlot.teacher}</p>
                         <p>Day: {selectedSlot.day}</p>
                         <p>Time: {selectedSlot.time}</p>
                         <div className="mt-4 flex justify-end space-x-3">
                             <button className="px-4 py-2 bg-gray-300 rounded" onClick={() => setIsModalOpen(false)}>
                                 Close
                             </button>
-                            <button className="px-4 py-2 bg-red-500 text-white rounded" onClick={handleDeleteSlot}>
-                                Cancel Lecture
-                            </button>
+
+                            {/* Show delete button only if teacher's name matches */}
+                            {selectedSlot.teacher === teacherName && (
+                                <button className="px-4 py-2 bg-red-500 text-white rounded" onClick={handleDeleteSlot}>
+                                    Cancel Lecture
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
