@@ -28,6 +28,7 @@ const Sidebar = () => {
     { to: '/teacher/timetable', label: 'My Schedule' },
     { to: '/teacher/preferences', label: 'My Preferences' },
     { to: '/teacher/activity', label: 'Activity' },
+    { to: '/teacher/profile', label: 'Profile' },
   ];
 
   const links = userRole === 'admin' ? adminLinks : teacherLinks;

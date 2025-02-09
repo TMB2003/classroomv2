@@ -14,6 +14,7 @@ import TeacherPreferences from './pages/teacher/TeacherPreferences';
 import ViewTimetable from './pages/teacher/ViewTimetable';
 import Activity from './pages/teacher/Activity';
 import Timetable from './pages/teacher/grouptimetable'
+import TeacherProfile from './pages/teacher/teacherprofile'
 import { isLoggedIn, getUserRole } from './utils/auth';
 
 // Protected Route Component with role check
@@ -125,7 +126,14 @@ function App() {
             </ProtectedRoute>
           }
         />
-
+        <Route
+          path="/teacher/profile"
+          element={
+            <ProtectedRoute allowedRoles={['teacher']}>
+              <TeacherProfile />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/teacher/class/:id"
           element={
